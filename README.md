@@ -2,6 +2,8 @@
 
 An Android Compose editor prototype for Seestar S50 astrophotography images.
 
+Pre-built APKs are available on the [Releases](https://github.com/Co-oscillator/Telescope-Glasses/releases) page.
+
 ## Open and run
 
 1. Open this folder (`Telescope Glasses`) in Android Studio.
