@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Telescope Glasses — Seestar S50 16-Bit FITS & JPG Companion Editor</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            astro: {
+              950: '#07090e',
+              900: '#0d111a',
+              800: '#151c2c',
+              700: '#212b42',
+              accent: '#e11d48',
+              amber: '#f59e0b',
+              cyan: '#06b6d4'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #07090e;
+      color: #e2e8f0;
+      font-family: 'Inter', sans-serif;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      background: #1e293b;
+      height: 6px;
+      border-radius: 999px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      margin-top: -5px;
+      background-color: #38bdf8;
+      height: 16px;
+      width: 16px;
+      border-radius: 999px;
+      border: 2px solid #0f172a;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #0d111a;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #212b42;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="h-[100dvh] overflow-hidden flex flex-col selection:bg-sky-500 selection:text-white">
+
+  <!-- Compact Fixed Top Header -->
+  <header class="shrink-0 border-b border-slate-800/80 bg-astro-900/95 backdrop-blur z-30 px-3 sm:px-5 py-2">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-rose-600 via-amber-500 to-sky-500 p-0.5 shadow-lg shadow-rose-950/40 shrink-0">
+          <div class="w-full h-full bg-astro-950 rounded-[10px] flex items-center justify-center font-mono font-bold text-xs text-amber-400">
+            TG
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-sm sm:text-base font-bold tracking-tight text-white">Telescope Glasses</h1>
+            <span class="hidden md:inline-block text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30">Seestar S50 Companion</span>
+          </div>
+          <p id="sourceModeBadge" class="text-[11px] font-mono text-slate-400 truncate max-w-[210px] sm:max-w-none">16-Bit FITS Simulation (M 42 Orion • BITPIX=16)</p>
+        </div>
+      </div>
+
+      <!-- Always-accessible Quick Compare & Export Actions -->
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <span id="renderTimeBadge" class="hidden sm:inline-block font-mono text-[11px] text-slate-400 bg-astro-950 px-2 py-1 rounded border border-slate-800">12 ms</span>
+
+        <button id="btnCompare" class="px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-xs font-medium text-amber-300 border border-amber-500/30 transition select-none">
+          Hold to Compare Raw
+        </button>
+
+        <button id="btnResetAll" class="px-2.5 py-1.5 rounded-lg bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 border border-rose-800/50 text-xs font-medium transition" title="Reset All Edits">
+          Reset All Edits
+        </button>
+
+        <button id="btnDownload" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-xs font-semibold text-white shadow-lg shadow-sky-900/40 transition flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          <span>Export Framed PNG</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Split Locked Viewport: Pinned Image Preview + Swipeable Control Deck -->
+  <main class="flex-1 min-h-0 max-w-7xl w-full mx-auto flex flex-col lg:grid lg:grid-cols-12 gap-2 sm:gap-4 p-2 sm:p-4 overflow-hidden">
+
+    <!-- Pinned Image Preview Area (Dynamically shrinks height when rotated 90° to landscape!) -->
+    <section id="photoPreviewSection" class="h-[34%] sm:h-[38%] lg:h-full lg:col-span-7 flex flex-col min-h-0 bg-astro-900 border border-slate-800/90 rounded-2xl p-2.5 sm:p-3.5 shadow-2xl transition-all duration-300">
+      <!-- Compact status strip + Rotate 90° Button -->
+      <div class="shrink-0 flex items-center justify-between gap-2 pb-2 mb-2 border-b border-slate-800/80 text-xs">
+        <div class="flex items-center gap-1.5 min-w-0">
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+          <span id="liveEditSummaryText" class="font-mono text-[11px] text-sky-400 truncate">
+            Telescope Glasses: Pre-Stretch (45%) • Curves (L)
+          </span>
+        </div>
+
+        <div class="shrink-0 flex items-center gap-2.5">
+          <button id="btnRotate90" class="px-2.5 py-1 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 text-[11px] font-mono font-medium transition flex items-center gap-1.5" title="Rotate 90° between Landscape (compact pane, larger image scale, more room for controls) and Portrait">
+            <svg class="w-3.5 h-3.5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            <span id="rotateBtnLabel">Rotate 90° (Landscape)</span>
+          </button>
+
+          <label class="flex items-center gap-1.5 cursor-pointer text-slate-300 hover:text-white text-[11px]">
+            <input type="checkbox" id="toggleBorder" checked class="rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-0" />
+            <span>Info Frame</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Pinned Canvas Container -->
+      <div class="relative flex-1 min-h-0 w-full flex items-center justify-center bg-astro-950/90 rounded-xl p-1.5 sm:p-2.5 border border-slate-800/60 overflow-hidden">
+        <canvas id="previewCanvas" class="max-h-full max-w-full w-auto h-auto object-contain rounded shadow-2xl border border-slate-800/80"></canvas>
+        <div id="compareBadge" class="hidden absolute top-3 left-3 px-3 py-1 rounded-full bg-amber-500/95 text-slate-950 font-bold text-xs uppercase tracking-wider shadow-lg">
+          Unedited Base Input
+        </div>
+      </div>
+    </section>
+
+    <!-- Swipeable Control Deck (Expands automatically when photo is rotated 90° to landscape!) -->
+    <aside id="controlDeckSection" class="h-[66%] sm:h-[62%] lg:h-full lg:col-span-5 flex flex-col min-h-0 bg-astro-900 border border-slate-800/90 rounded-2xl shadow-xl overflow-hidden transition-all duration-300">
+
+      <!-- Panel Navigation Bar (Tap or Swipe Left/Right) -->
+      <div class="shrink-0 p-2 sm:p-2.5 bg-astro-950/90 border-b border-slate-800/80 flex items-center justify-between gap-1.5">
+        <button id="btnPrevPanel" class="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition" title="Previous Panel">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+
+        <div class="flex-1 grid grid-cols-3 gap-1 bg-astro-900 p-1 rounded-xl border border-slate-800/90">
+          <button data-panel="0" class="panel-tab py-1.5 px-2 rounded-lg text-xs font-semibold bg-sky-600 text-white shadow transition flex items-center justify-center gap-1.5">
+            <span>1. Curves</span>
+          </button>
+          <button data-panel="1" class="panel-tab py-1.5 px-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5">
+            <span>2. Sliders</span>
+          </button>
+          <button data-panel="2" class="panel-tab py-1.5 px-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5">
+            <span>3. Files & Frame</span>
+          </button>
+        </div>
+
+        <button id="btnNextPanel" class="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition" title="Next Panel">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+
+      <!-- Horizontal Swipe Track Container -->
+      <div id="panelViewport" class="relative flex-1 min-h-0 w-full overflow-hidden touch-pan-y">
+        <div id="panelTrack" class="flex h-full w-[300%] transition-transform duration-300 ease-out">
+
+          <!-- PANEL 1: 16-BIT CURVES & STRETCH HEADROOM -->
+          <div class="w-1/3 h-full overflow-y-auto custom-scroll p-3 sm:p-4 flex flex-col justify-between gap-3">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <div>
+                  <h2 class="text-xs sm:text-sm font-bold text-white">16-Bit Curves & Stretch Headroom</h2>
+                  <p class="text-[11px] text-slate-400">Drag handles to shape black/white levels • Double-click point to remove</p>
+                </div>
+                <button id="btnResetCurve" class="text-xs text-slate-400 hover:text-sky-400 font-mono underline shrink-0">Reset Channel</button>
+              </div>
+
+              <!-- FITS Linear Pre-Stretch -->
+              <div class="mb-2.5 p-2.5 rounded-xl bg-astro-950 border border-slate-800 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="text-xs font-semibold text-amber-300">FITS Linear Pre-Stretch (Asinh)</div>
+                  <p class="text-[10px] text-slate-400 truncate">Lifts linear nebula stack out of bottom 1%</p>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <input id="sliderAsinh" type="range" min="0" max="100" value="45" class="w-24" />
+                  <span id="valAsinh" class="font-mono text-xs text-amber-400 w-9 text-right">45%</span>
+                </div>
+              </div>
+
+              <!-- Channel Selector Tabs (L, R, G, B) -->
+              <div class="grid grid-cols-4 gap-1 bg-astro-950 p-1 rounded-xl border border-slate-800 mb-2.5">
+                <button data-channel="L" class="curve-tab py-1 rounded-lg text-xs font-semibold bg-slate-800 text-white shadow transition flex items-center justify-center gap-1">
+                  <span class="w-2 h-2 rounded-full bg-white"></span>Light (L)
+                </button>
+                <button data-channel="R" class="curve-tab py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-rose-400 transition flex items-center justify-center gap-1">
+                  <span class="w-2 h-2 rounded-full bg-rose-500"></span>Red
+                </button>
+                <button data-channel="G" class="curve-tab py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-emerald-400 transition flex items-center justify-center gap-1">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span>Green
+                </button>
+                <button data-channel="B" class="curve-tab py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-sky-400 transition flex items-center justify-center gap-1">
+                  <span class="w-2 h-2 rounded-full bg-sky-500"></span>Blue
+                </button>
+              </div>
+
+              <!-- Interactive Curve Canvas -->
+              <div class="relative aspect-square w-full max-w-[265px] sm:max-w-[290px] mx-auto bg-astro-950 rounded-xl border border-slate-800 overflow-hidden select-none">
+                <canvas id="curveCanvas" width="280" height="280" class="w-full h-full cursor-crosshair touch-none"></canvas>
+                <div class="absolute bottom-1.5 right-2 pointer-events-none font-mono text-[10px] text-slate-400 bg-astro-900/80 px-1.5 py-0.5 rounded">
+                  <span id="curveCoordReadout">In: 0% → Out: 0%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Curve Presets -->
+            <div class="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-1.5">
+              <span class="text-[11px] text-slate-400">Curve Presets:</span>
+              <div class="flex flex-wrap gap-1.5">
+                <button id="btnCurveDeepSky" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] text-slate-200 border border-slate-700">Deep-Sky S-Curve</button>
+                <button id="btnCurveCoreProtect" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] text-slate-200 border border-slate-700">Core Highlight Tame</button>
+                <button id="btnCurveGreenNeutral" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] text-emerald-300 border border-slate-700">SCNR Green Dip</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANEL 2: DETAIL, NOISE, SATURATION & STRUCTURE SLIDERS -->
+          <div class="w-1/3 h-full overflow-y-auto custom-scroll p-3 sm:p-4 flex flex-col justify-between gap-4">
+            <div class="space-y-3.5">
+              <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                <div>
+                  <h2 class="text-xs sm:text-sm font-bold text-white">Detail, Color & Structure Sliders</h2>
+                  <p class="text-[11px] text-slate-400">Every active slider is automatically printed to the bottom frame</p>
+                </div>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-500/15 text-sky-400 border border-sky-500/30">Live Audit</span>
+              </div>
+
+              <!-- Noise Reduction -->
+              <div class="p-3 rounded-xl bg-astro-950 border border-slate-800/90 space-y-1.5">
+                <div class="flex justify-between text-xs">
+                  <label for="sliderDenoise" class="font-semibold text-slate-200">Noise Reduction</label>
+                  <span id="valDenoise" class="font-mono text-sky-400">25%</span>
+                </div>
+                <p class="text-[11px] text-slate-400">Edge-preserving bilateral filter that smooths dark sky grain while keeping star cores crisp</p>
+                <input id="sliderDenoise" type="range" min="0" max="100" value="25" class="w-full" />
+              </div>
+
+              <!-- Saturation -->
+              <div class="p-3 rounded-xl bg-astro-950 border border-slate-800/90 space-y-1.5">
+                <div class="flex justify-between text-xs">
+                  <label for="sliderSaturation" class="font-semibold text-slate-200">Saturation</label>
+                  <span id="valSaturation" class="font-mono text-sky-400">+20%</span>
+                </div>
+                <p class="text-[11px] text-slate-400">Boosts H-alpha / OIII emission nebula and star color temperature chroma without shifting brightness</p>
+                <input id="sliderSaturation" type="range" min="-100" max="100" value="20" class="w-full" />
+              </div>
+
+              <!-- Sharpening (Small Details) -->
+              <div class="p-3 rounded-xl bg-astro-950 border border-slate-800/90 space-y-1.5">
+                <div class="flex justify-between text-xs">
+                  <label for="sliderSharpen" class="font-semibold text-slate-200">Sharpening (Small Details)</label>
+                  <span id="valSharpen" class="font-mono text-sky-400">15%</span>
+                </div>
+                <p class="text-[11px] text-slate-400">Fine-radius unsharp mask (σ = 1.2 px) for tight star pinpoints and planetary detail</p>
+                <input id="sliderSharpen" type="range" min="0" max="100" value="15" class="w-full" />
+              </div>
+
+              <!-- Structure ("Pop" / Larger Areas) -->
+              <div class="p-3 rounded-xl bg-astro-950 border border-slate-800/90 space-y-1.5">
+                <div class="flex justify-between text-xs">
+                  <label for="sliderStructure" class="font-semibold text-slate-200">Structure ("Pop" / Large Areas)</label>
+                  <span id="valStructure" class="font-mono text-sky-400">30%</span>
+                </div>
+                <p class="text-[11px] text-slate-400">Wide-radius local contrast (σ = 14 px) to make large dust lanes and spiral arms pop</p>
+                <input id="sliderStructure" type="range" min="0" max="100" value="30" class="w-full" />
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+              <span>Swipe left/right to switch panels</span>
+              <button id="btnZeroSliders" class="text-rose-400 hover:text-rose-300 font-mono underline">Zero Sliders</button>
+            </div>
+          </div>
+
+          <!-- PANEL 3: FILE MANAGEMENT, SAMPLE .FIT & SEESTAR FRAME METADATA -->
+          <div class="w-1/3 h-full overflow-y-auto custom-scroll p-3 sm:p-4 flex flex-col justify-between gap-3">
+            <div class="space-y-3">
+              <div>
+                <h2 class="text-xs sm:text-sm font-bold text-white">File Management & Seestar Info Frame</h2>
+                <p class="text-[11px] text-slate-400">Load `.fit` / `.jpg` files, switch targets, or edit bottom border metadata</p>
+              </div>
+
+              <!-- Built-in Deep-Sky Targets -->
+              <div class="p-2.5 rounded-xl bg-astro-950 border border-slate-800 space-y-2">
+                <div class="text-[11px] font-mono uppercase text-slate-400">Built-In 16-Bit Targets & Sample .FIT</div>
+                <div class="grid grid-cols-3 gap-1.5 text-xs">
+                  <button id="presetM42" class="py-1.5 px-2 rounded-lg font-medium bg-slate-800 text-sky-400 border border-sky-500/30 transition">M 42 Orion</button>
+                  <button id="presetM81" class="py-1.5 px-2 rounded-lg font-medium bg-astro-900 text-slate-400 hover:text-white border border-slate-800 transition">M 81 Galaxy</button>
+                  <button id="presetNGC7000" class="py-1.5 px-2 rounded-lg font-medium bg-astro-900 text-slate-400 hover:text-white border border-slate-800 transition">NGC 7000 Cygnus</button>
+                </div>
+
+                <!-- File I/O Buttons -->
+                <div class="grid grid-cols-2 gap-1.5 pt-1">
+                  <label for="fileUpload" class="cursor-pointer py-1.5 px-2.5 rounded-lg bg-sky-600/20 hover:bg-sky-600/30 text-xs font-medium text-sky-300 border border-sky-500/40 transition flex items-center justify-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-sky-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    <span>Load .FIT / .JPG</span>
+                    <input id="fileUpload" type="file" accept=".fit,.fits,image/*" class="hidden" />
+                  </label>
+
+                  <button id="btnLoadSampleFits" class="py-1.5 px-2.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900/80 text-xs font-medium text-emerald-300 border border-emerald-700/60 transition flex items-center justify-center gap-1.5">
+                    <span>Test Sample .FIT</span>
+                  </button>
+
+                  <button id="btnExportSampleFits" class="py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition">
+                    Download .FIT
+                  </button>
+
+                  <button id="btnCopyPresetJson" class="py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-amber-300 border border-slate-700 transition">
+                    Copy Android Preset JSON
+                  </button>
+                </div>
+              </div>
+
+              <!-- Seestar S50 Information Frame Fields -->
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <label class="block text-[10px] text-slate-400 mb-0.5">Target (`OBJECT`)</label>
+                  <input id="metaObject" type="text" value="M 42 Orion Nebula" class="w-full bg-astro-950 border border-slate-800 rounded-lg px-2 py-1 text-white font-mono text-xs focus:outline-none focus:border-sky-500" />
+                </div>
+                <div>
+                  <label class="block text-[10px] text-slate-400 mb-0.5">Telescope (`TELESCOP`)</label>
+                  <input id="metaTelescope" type="text" value="ZWO Seestar S50" class="w-full bg-astro-950 border border-slate-800 rounded-lg px-2 py-1 text-white font-mono text-xs focus:outline-none focus:border-sky-500" />
+                </div>
+                <div>
+                  <label class="block text-[10px] text-slate-400 mb-0.5">Stack (`STACKCNT` × `EXPTIME`)</label>
+                  <input id="metaExposure" type="text" value="420 × 10s (70m 00s)" class="w-full bg-astro-950 border border-slate-800 rounded-lg px-2 py-1 text-white font-mono text-xs focus:outline-none focus:border-sky-500" />
+                </div>
+                <div>
+                  <label class="block text-[10px] text-slate-400 mb-0.5">Filter & Gain (`FILTER`)</label>
+                  <input id="metaFilter" type="text" value="LP Dual-Band • Gain 80" class="w-full bg-astro-950 border border-slate-800 rounded-lg px-2 py-1 text-white font-mono text-xs focus:outline-none focus:border-sky-500" />
+                </div>
+                <div>
+                  <label class="block text-[10px] text-slate-400 mb-0.5">Coordinates (`RA` / `DEC`)</label>
+                  <input id="metaCoords" type="text" value="RA 05h 35m • DEC -05° 23'" class="w-full bg-astro-950 border border-slate-800 rounded-lg px-2 py-1 text-white font-mono text-xs focus:outline-none focus:border-sky-500" />
+                </div>
+                <div>
+                  <label class="block text-[10px] text-slate-400 mb-0.5">Date (`DATE-OBS`)</label>
+                  <input id="metaDate" type="text" value="2026-10-22 • Bortle 5" class="w-full bg-astro-950 border border-slate-800 rounded-lg px-2 py-1 text-white font-mono text-xs focus:outline-none focus:border-sky-500" />
+                </div>
+              </div>
+
+              <!-- Collapsible Raw 80-Column FITS Header Inspector -->
+              <div class="bg-astro-950 border border-slate-800 rounded-xl p-2.5">
+                <div class="flex items-center justify-between">
+                  <span id="fitsBinaryStats" class="text-[10px] font-mono text-emerald-400">BITPIX=16 • BZERO=32768 • Big-Endian</span>
+                  <button id="btnToggleFitsHeader" class="text-[11px] font-mono text-amber-400 hover:text-amber-300 underline">
+                    Inspect Raw FITS Header
+                  </button>
+                </div>
+                <div id="fitsHeaderDrawer" class="hidden mt-2 pt-2 border-t border-slate-800">
+                  <pre id="fitsHeaderPre" class="text-[10px] font-mono text-slate-300 max-h-28 overflow-y-auto custom-scroll leading-relaxed whitespace-pre-wrap"></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Pagination Dots & Swipe Hint Footer -->
+      <div class="shrink-0 py-1.5 px-3 bg-astro-950/90 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+        <span id="activePanelLabel" class="font-mono text-slate-300">Panel 1/3: Curves Editor</span>
+        <div class="flex items-center gap-1.5">
+          <span data-dot="0" class="panel-dot w-4 h-1.5 rounded-full bg-sky-400 transition-all cursor-pointer"></span>
+          <span data-dot="1" class="panel-dot w-1.5 h-1.5 rounded-full bg-slate-700 transition-all cursor-pointer"></span>
+          <span data-dot="2" class="panel-dot w-1.5 h-1.5 rounded-full bg-slate-700 transition-all cursor-pointer"></span>
+        </div>
+        <span class="hidden sm:inline">Swipe or use ← → keys</span>
+      </div>
+
+    </aside>
+  </main>
+
+  <script>
+    let IMG_W = 540;
+    let IMG_H = 680;
+    const BORDER_H = 128;
+
+    const previewCanvas = document.getElementById('previewCanvas');
+    const previewCtx = previewCanvas.getContext('2d');
+    const curveCanvas = document.getElementById('curveCanvas');
+    const curveCtx = curveCanvas.getContext('2d');
+
+    let rawFloatBuffer = new Float32Array(IMG_W * IMG_H * 3);
+    let postStretchBuffer = new Float32Array(IMG_W * IMG_H * 3);
+
+    let isRotated90 = true;
+
+    let currentPanelIndex = 0;
+    const PANEL_NAMES = [
+      'Panel 1/3: Curves Editor',
+      'Panel 2/3: Detail & Color Sliders',
+      'Panel 3/3: Files & Info Frame'
+    ];
+
+    let activeChannel = 'L';
+    let isComparingRaw = false;
+    let currentPreset = 'M42';
+    let draggingPointIndex = -1;
+    let lastParsedFitsCards = [];
+
+    const defaultCurves = () => ({
+      L: [{ x: 0, y: 0 }, { x: 0.22, y: 0.32 }, { x: 0.75, y: 0.84 }, { x: 1, y: 1 }],
+      R: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+      G: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+      B: [{ x: 0, y: 0 }, { x: 1, y: 1 }]
+    });
+
+    let curves = defaultCurves();
+
+    const lutL = new Float32Array(1024);
+    const lutR = new Float32Array(1024);
+    const lutG = new Float32Array(1024);
+    const lutB = new Float32Array(1024);
+
+    const histR = new Uint32Array(128);
+    const histG = new Uint32Array(128);
+    const histB = new Uint32Array(128);
+
+    function updateRotationLayout() {
+      const photoSec = document.getElementById('photoPreviewSection');
+      const controlSec = document.getElementById('controlDeckSection');
+      const label = document.getElementById('rotateBtnLabel');
+
+      if (isRotated90) {
+        photoSec.className = 'h-[34%] sm:h-[38%] lg:h-full lg:col-span-7 flex flex-col min-h-0 bg-astro-900 border border-slate-800/90 rounded-2xl p-2.5 sm:p-3.5 shadow-2xl transition-all duration-300';
+        controlSec.className = 'h-[66%] sm:h-[62%] lg:h-full lg:col-span-5 flex flex-col min-h-0 bg-astro-900 border border-slate-800/90 rounded-2xl shadow-xl overflow-hidden transition-all duration-300';
+        label.textContent = 'Rotate 90° (Landscape)';
+      } else {
+        photoSec.className = 'h-[46%] sm:h-[48%] lg:h-full lg:col-span-7 flex flex-col min-h-0 bg-astro-900 border border-slate-800/90 rounded-2xl p-2.5 sm:p-3.5 shadow-2xl transition-all duration-300';
+        controlSec.className = 'h-[54%] sm:h-[52%] lg:h-full lg:col-span-5 flex flex-col min-h-0 bg-astro-900 border border-slate-800/90 rounded-2xl shadow-xl overflow-hidden transition-all duration-300';
+        label.textContent = 'Rotate 0° (Portrait)';
+      }
+      renderPipeline();
+    }
+
+    document.getElementById('btnRotate90').addEventListener('click', () => {
+      isRotated90 = !isRotated90;
+      updateRotationLayout();
+    });
+
+    function setActivePanel(index) {
+      currentPanelIndex = Math.max(0, Math.min(2, index));
+      const track = document.getElementById('panelTrack');
+      track.style.transform = `translateX(-${(currentPanelIndex * 100) / 3}%)`;
+
+      document.getElementById('activePanelLabel').textContent = PANEL_NAMES[currentPanelIndex];
+
+      document.querySelectorAll('.panel-tab').forEach(btn => {
+        const idx = parseInt(btn.getAttribute('data-panel'), 10);
+        if (idx === currentPanelIndex) {
+          btn.className = 'panel-tab py-1.5 px-2 rounded-lg text-xs font-semibold bg-sky-600 text-white shadow transition flex items-center justify-center gap-1.5';
+        } else {
+          btn.className = 'panel-tab py-1.5 px-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5';
+        }
+      });
+
+      document.querySelectorAll('.panel-dot').forEach(dot => {
+        const idx = parseInt(dot.getAttribute('data-dot'), 10);
+        if (idx === currentPanelIndex) {
+          dot.className = 'panel-dot w-4 h-1.5 rounded-full bg-sky-400 transition-all cursor-pointer';
+        } else {
+          dot.className = 'panel-dot w-1.5 h-1.5 rounded-full bg-slate-700 transition-all cursor-pointer';
+        }
+      });
+    }
+
+    document.querySelectorAll('.panel-tab').forEach(btn => {
+      btn.addEventListener('click', () => setActivePanel(parseInt(btn.getAttribute('data-panel'), 10)));
+    });
+    document.querySelectorAll('.panel-dot').forEach(dot => {
+      dot.addEventListener('click', () => setActivePanel(parseInt(dot.getAttribute('data-dot'), 10)));
+    });
+    document.getElementById('btnPrevPanel').addEventListener('click', () => setActivePanel(currentPanelIndex - 1));
+    document.getElementById('btnNextPanel').addEventListener('click', () => setActivePanel(currentPanelIndex + 1));
+
+    window.addEventListener('keydown', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      if (e.key === 'ArrowLeft') setActivePanel(currentPanelIndex - 1);
+      if (e.key === 'ArrowRight') setActivePanel(currentPanelIndex + 1);
+    });
+
+    const panelViewport = document.getElementById('panelViewport');
+    let swipeStartX = null;
+    let swipeStartY = null;
+
+    panelViewport.addEventListener('touchstart', (e) => {
+      const tag = e.target && e.target.tagName;
+      if (tag === 'CANVAS' || tag === 'INPUT') {
+        swipeStartX = null;
+        return;
+      }
+      swipeStartX = e.touches[0].clientX;
+      swipeStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    panelViewport.addEventListener('touchend', (e) => {
+      if (swipeStartX === null || !e.changedTouches.length) return;
+      const dx = e.changedTouches[0].clientX - swipeStartX;
+      const dy = e.changedTouches[0].clientY - swipeStartY;
+      if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+        if (dx < 0) setActivePanel(currentPanelIndex + 1);
+        else setActivePanel(currentPanelIndex - 1);
+      }
+      swipeStartX = null;
+    }, { passive: true });
+
+    function formatFitsCard(key, valueStr, comment) {
+      const k = key.padEnd(8, ' ').slice(0, 8);
+      if (key === 'END') return 'END'.padEnd(80, ' ');
+      const valFormatted = valueStr.padStart(20, ' ');
+      const body = `${k}= ${valFormatted} / ${comment || ''}`;
+      return body.padEnd(80, ' ').slice(0, 80);
+    }
+
+    function buildBinarySeestarFitsArrayBuffer(width, height, floatRgb, meta) {
+      const cards = [
+        formatFitsCard('SIMPLE', 'T', 'file does conform to FITS standard'),
+        formatFitsCard('BITPIX', '16', 'number of bits per data pixel'),
+        formatFitsCard('NAXIS', '3', 'number of data axes'),
+        formatFitsCard('NAXIS1', String(width), 'length of data axis 1 (width)'),
+        formatFitsCard('NAXIS2', String(height), 'length of data axis 2 (height)'),
+        formatFitsCard('NAXIS3', '3', 'length of data axis 3 (RGB planes)'),
+        formatFitsCard('EXTEND', 'T', 'FITS dataset may contain extensions'),
+        formatFitsCard('BZERO', '32768', 'offset data range to unsigned short'),
+        formatFitsCard('BSCALE', '1', 'default scaling factor'),
+        formatFitsCard('CREATOR', "'ZWO Seestar S50'", 'Capture software'),
+        formatFitsCard('INSTRUME', "'Seestar S50'", 'Camera model'),
+        formatFitsCard('TELESCOP', `'${meta.telescope.slice(0, 16)}'`, 'Telescope name'),
+        formatFitsCard('OBJECT', `'${meta.objectName.slice(0, 16)}'`, 'Target catalog name'),
+        formatFitsCard('STACKCNT', String(meta.stackCount || 420), 'Stack frames'),
+        formatFitsCard('EXPTIME', '10.0', 'Exposure time in seconds'),
+        formatFitsCard('TOTALEXP', String((meta.stackCount || 420) * 10.0), 'Total Exposure Time in seconds'),
+        formatFitsCard('FILTER', `'${meta.filter.slice(0, 12)}'`, 'Filter used when taking image'),
+        formatFitsCard('GAIN', '80', 'Gain Value'),
+        formatFitsCard('BAYERPAT', "'GRBG'", 'Bayer pattern'),
+        formatFitsCard('DATE-OBS', "'2026-10-22T04:15:00'", 'Image created time'),
+        formatFitsCard('END', '', '')
+      ];
+
+      while (cards.length % 36 !== 0) {
+        cards.push(' '.repeat(80));
+      }
+
+      const headerBytesLen = cards.length * 80;
+      const numPixels = width * height;
+      const dataBytesLen = numPixels * 3 * 2;
+      const paddedDataBytesLen = Math.ceil(dataBytesLen / 2880) * 2880;
+
+      const buffer = new ArrayBuffer(headerBytesLen + paddedDataBytesLen);
+      const uint8 = new Uint8Array(buffer);
+
+      const headerStr = cards.join('');
+      for (let i = 0; i < headerBytesLen; i++) {
+        uint8[i] = headerStr.charCodeAt(i) & 0x7f;
+      }
+
+      const view = new DataView(buffer, headerBytesLen);
+      const planeSize = numPixels * 2;
+
+      for (let i = 0; i < numPixels; i++) {
+        const rU16 = Math.min(65535, Math.max(0, Math.round(floatRgb[i * 3] * 65535)));
+        const gU16 = Math.min(65535, Math.max(0, Math.round(floatRgb[i * 3 + 1] * 65535)));
+        const bU16 = Math.min(65535, Math.max(0, Math.round(floatRgb[i * 3 + 2] * 65535)));
+
+        view.setInt16(i * 2, rU16 - 32768, false);
+        view.setInt16(planeSize + i * 2, gU16 - 32768, false);
+        view.setInt16(planeSize * 2 + i * 2, bU16 - 32768, false);
+      }
+
+      return buffer;
+    }
+
+    function parseBinaryFitsArrayBuffer(arrayBuffer, sourceLabel = 'sample_seestar_s50.fit') {
+      const bytes = new Uint8Array(arrayBuffer);
+      const headerMap = {};
+      const rawCards = [];
+      let offset = 0;
+      let endFound = false;
+
+      while (offset + 80 <= bytes.length && !endFound) {
+        let card = '';
+        for (let i = 0; i < 80; i++) {
+          card += String.fromCharCode(bytes[offset + i]);
+        }
+        offset += 80;
+
+        const key = card.slice(0, 8).trim();
+        if (key === 'END') {
+          rawCards.push('END');
+          endFound = true;
+        } else if (key.length > 0) {
+          rawCards.push(card.trimEnd());
+          if (card.slice(8, 10) === '= ') {
+            const valComment = card.slice(10).split('/')[0].trim();
+            const cleanVal = valComment.replace(/^'|'$/g, '').trim();
+            headerMap[key] = cleanVal;
+          }
+        }
+      }
+
+      const dataStartOffset = Math.ceil(offset / 2880) * 2880;
+
+      const width = parseInt(headerMap['NAXIS1'] || '540', 10);
+      const height = parseInt(headerMap['NAXIS2'] || '680', 10);
+      const naxis = parseInt(headerMap['NAXIS'] || '2', 10);
+      const depth = naxis >= 3 ? parseInt(headerMap['NAXIS3'] || '3', 10) : 1;
+      const bitpix = parseInt(headerMap['BITPIX'] || '16', 10);
+      const bzero = parseFloat(headerMap['BZERO'] || '32768');
+      const bscale = parseFloat(headerMap['BSCALE'] || '1');
+
+      lastParsedFitsCards = rawCards;
+      document.getElementById('fitsHeaderPre').textContent = rawCards.join('\n');
+      document.getElementById('fitsBinaryStats').textContent =
+        `BITPIX=${bitpix} • ${width}×${height}×${depth} • BZERO=${bzero}`;
+
+      const objName = headerMap['OBJECT'] || 'M 42 Orion Nebula';
+      const telescope = headerMap['TELESCOP'] || headerMap['INSTRUME'] || 'ZWO Seestar S50';
+      const stackCnt = parseInt(headerMap['STACKCNT'] || '420', 10);
+      const expTime = parseFloat(headerMap['EXPTIME'] || headerMap['EXPOSURE'] || '10');
+      const totalSec = Math.round(parseFloat(headerMap['TOTALEXP'] || String(stackCnt * expTime)));
+      const mins = Math.floor(totalSec / 60);
+      const secs = totalSec % 60;
+      const filter = headerMap['FILTER'] || 'IRCUT';
+      const gain = headerMap['GAIN'] || '80';
+      const dateObs = (headerMap['DATE-OBS'] || '2026-10-22').slice(0, 10);
+
+      document.getElementById('metaObject').value = objName;
+      document.getElementById('metaTelescope').value = telescope;
+      document.getElementById('metaExposure').value = `${stackCnt} × ${Math.round(expTime)}s (${mins}m ${secs}s)`;
+      document.getElementById('metaFilter').value = `${filter} • Gain ${gain}`;
+      document.getElementById('metaDate').value = dateObs;
+      document.getElementById('sourceModeBadge').textContent =
+        `Loaded 16-Bit FITS (${sourceLabel} • ${width}×${height})`;
+
+      const view = new DataView(arrayBuffer, dataStartOffset);
+      const numSrcPixels = width * height;
+
+      IMG_W = Math.min(540, width);
+      IMG_H = Math.round(height * (IMG_W / width));
+      rawFloatBuffer = new Float32Array(IMG_W * IMG_H * 3);
+      postStretchBuffer = new Float32Array(IMG_W * IMG_H * 3);
+
+      const readSampleNormalized = (pixelIndex) => {
+        if (bitpix === 16) {
+          const bytePos = pixelIndex * 2;
+          if (bytePos + 2 > view.byteLength) return 0;
+          const signedVal = view.getInt16(bytePos, false);
+          const physical = signedVal * bscale + bzero;
+          return Math.min(1, Math.max(0, physical / 65535.0));
+        } else if (bitpix === -32) {
+          const bytePos = pixelIndex * 4;
+          if (bytePos + 4 > view.byteLength) return 0;
+          const floatVal = view.getFloat32(bytePos, false);
+          return Math.min(1, Math.max(0, floatVal));
+        }
+        return 0;
+      };
+
+      for (let y = 0; y < IMG_H; y++) {
+        const srcY = Math.min(height - 1, Math.floor((y / IMG_H) * height));
+        for (let x = 0; x < IMG_W; x++) {
+          const srcX = Math.min(width - 1, Math.floor((x / IMG_W) * width));
+          const srcIdx = srcY * width + srcX;
+          const dstIdx = (y * IMG_W + x) * 3;
+
+          if (depth >= 3) {
+            rawFloatBuffer[dstIdx] = readSampleNormalized(srcIdx);
+            rawFloatBuffer[dstIdx + 1] = readSampleNormalized(numSrcPixels + srcIdx);
+            rawFloatBuffer[dstIdx + 2] = readSampleNormalized(numSrcPixels * 2 + srcIdx);
+          } else {
+            const v = readSampleNormalized(srcIdx);
+            rawFloatBuffer[dstIdx] = v;
+            rawFloatBuffer[dstIdx + 1] = v;
+            rawFloatBuffer[dstIdx + 2] = v;
+          }
+        }
+      }
+
+      renderPipeline();
+    }
+
+    function seededRandom(seed) {
+      let s = seed % 2147483647;
+      return function() {
+        s = (s * 16807) % 2147483647;
+        return (s - 1) / 2147483646;
+      };
+    }
+
+    function fbmNoise(x, y, seedOffset) {
+      let value = 0;
+      let amp = 0.5;
+      let freq = 1;
+      for (let i = 0; i < 5; i++) {
+        const nx = x * freq + seedOffset;
+        const ny = y * freq + seedOffset * 1.3;
+        const n = Math.sin(nx * 2.1 + Math.cos(ny * 2.7)) * Math.cos(ny * 1.9 - Math.sin(nx * 3.1));
+        value += (n * 0.5 + 0.5) * amp;
+        freq *= 2.15;
+        amp *= 0.48;
+      }
+      return value;
+    }
+
+    function generateSyntheticAstroImage(preset) {
+      IMG_W = 540;
+      IMG_H = 680;
+      rawFloatBuffer = new Float32Array(IMG_W * IMG_H * 3);
+      postStretchBuffer = new Float32Array(IMG_W * IMG_H * 3);
+
+      const rand = seededRandom(preset === 'M42' ? 42050 : preset === 'M81' ? 81050 : 700050);
+      const cx = IMG_W * 0.5;
+      const cy = IMG_H * 0.48;
+
+      for (let y = 0; y < IMG_H; y++) {
+        for (let x = 0; x < IMG_W; x++) {
+          const idx = (y * IMG_W + x) * 3;
+          const dx = (x - cx) / (IMG_W * 0.45);
+          const dy = (y - cy) / (IMG_H * 0.45);
+          const r2 = dx * dx + dy * dy;
+          const dist = Math.sqrt(r2);
+
+          let r = 0.008 + (rand() - 0.5) * 0.006;
+          let g = 0.009 + (rand() - 0.5) * 0.006;
+          let b = 0.012 + (rand() - 0.5) * 0.006;
+
+          if (preset === 'M42') {
+            const n1 = fbmNoise(dx * 2.4, dy * 2.4, 1.2);
+            const n2 = fbmNoise(dx * 4.8 + n1 * 0.8, dy * 4.8 - n1 * 0.6, 3.7);
+            const wingAngle = Math.atan2(dy, dx);
+            const wingShape = Math.exp(-dist * 1.85) * (0.65 + 0.45 * Math.cos(wingAngle * 2.0 - dist * 2.5));
+            const dustLane = Math.max(0.15, 1.0 - 0.85 * Math.exp(-Math.pow((dx - 0.12) * 5.5, 2) - Math.pow((dy + 0.08 + dx * 0.5) * 7.0, 2)));
+            const core = 0.95 * Math.exp(-r2 * 24.0);
+
+            const ha = wingShape * n2 * dustLane;
+            const oiii = Math.exp(-r2 * 6.5) * n1 * dustLane;
+
+            r += core * 1.1 + ha * 0.42 + oiii * 0.08;
+            g += core * 0.95 + ha * 0.11 + oiii * 0.34;
+            b += core * 1.05 + ha * 0.18 + oiii * 0.45;
+          } else if (preset === 'M81') {
+            const tiltX = dx * 1.1 + dy * 0.45;
+            const tiltY = (dy * 1.1 - dx * 0.45) * 1.85;
+            const galR2 = tiltX * tiltX + tiltY * tiltY;
+            const galDist = Math.sqrt(galR2);
+            const theta = Math.atan2(tiltY, tiltX);
+            const spiral = Math.pow(Math.cos(theta * 2.0 - Math.log(galDist + 0.06) * 4.3) * 0.5 + 0.5, 2.2);
+            const turb = fbmNoise(tiltX * 3.5, tiltY * 3.5, 5.1);
+
+            const bulge = 1.15 * Math.exp(-galR2 * 22.0);
+            const disk = Math.exp(-galDist * 2.8) * (0.25 + 0.75 * spiral * turb);
+
+            r += bulge * 1.05 + disk * 0.32;
+            g += bulge * 0.86 + disk * 0.28;
+            b += bulge * 0.62 + disk * 0.44;
+          } else {
+            const n1 = fbmNoise(dx * 2.2, dy * 2.2, 8.4);
+            const n2 = fbmNoise(dx * 5.2 + n1, dy * 5.2, 2.1);
+            const ridge = Math.exp(-Math.pow(dx + 0.25 * Math.sin(dy * 3.2) - n1 * 0.35, 2) * 6.0);
+            const cloud = ridge * n2 * Math.exp(-r2 * 0.7);
+
+            r += cloud * 0.58 + n1 * 0.06;
+            g += cloud * 0.14 + n2 * 0.08;
+            b += cloud * 0.19 + n2 * 0.14;
+          }
+
+          rawFloatBuffer[idx] = Math.min(1, Math.max(0, r));
+          rawFloatBuffer[idx + 1] = Math.min(1, Math.max(0, g));
+          rawFloatBuffer[idx + 2] = Math.min(1, Math.max(0, b));
+        }
+      }
+
+      const numStars = 290;
+      for (let s = 0; s < numStars; s++) {
+        const sx = Math.floor(rand() * (IMG_W - 16)) + 8;
+        const sy = Math.floor(rand() * (IMG_H - 16)) + 8;
+        const mag = Math.pow(rand(), 3.2) * 0.95 + 0.05;
+        const temp = rand();
+        const sr = temp < 0.35 ? 1.0 : temp > 0.75 ? 0.78 : 0.96;
+        const sg = temp < 0.35 ? 0.76 : temp > 0.75 ? 0.88 : 0.95;
+        const sb = temp < 0.35 ? 0.52 : temp > 0.75 ? 1.0 : 0.98;
+        const radius = mag > 0.65 ? 5 : mag > 0.3 ? 3 : 2;
+
+        for (let oy = -radius; oy <= radius; oy++) {
+          for (let ox = -radius; ox <= radius; ox++) {
+            const px = sx + ox;
+            const py = sy + oy;
+            if (px >= 0 && px < IMG_W && py >= 0 && py < IMG_H) {
+              const d2 = ox * ox + oy * oy;
+              const falloff = Math.exp(-d2 / (mag > 0.65 ? 2.2 : 1.1));
+              const pIdx = (py * IMG_W + px) * 3;
+              rawFloatBuffer[pIdx] = Math.min(1, rawFloatBuffer[pIdx] + mag * sr * falloff);
+              rawFloatBuffer[pIdx + 1] = Math.min(1, rawFloatBuffer[pIdx + 1] + mag * sg * falloff);
+              rawFloatBuffer[pIdx + 2] = Math.min(1, rawFloatBuffer[pIdx + 2] + mag * sb * falloff);
+            }
+          }
+        }
+      }
+
+      const sampleBuf = buildBinarySeestarFitsArrayBuffer(IMG_W, IMG_H, rawFloatBuffer, {
+        objectName: document.getElementById('metaObject').value,
+        telescope: document.getElementById('metaTelescope').value,
+        stackCount: 420,
+        filter: 'LP'
+      });
+      const bytes = new Uint8Array(sampleBuf, 0, 2880);
+      const cards = [];
+      for (let offset = 0; offset < 2880; offset += 80) {
+        let card = '';
+        for (let i = 0; i < 80; i++) card += String.fromCharCode(bytes[offset + i]);
+        if (card.trim().length > 0) cards.push(card.trimEnd());
+      }
+      document.getElementById('fitsHeaderPre').textContent = cards.join('\n');
+    }
+
+    function buildChannelLUT(points, lutArray) {
+      const sorted = [...points].sort((a, b) => a.x - b.x);
+      const n = sorted.length;
+      const len = lutArray.length;
+
+      if (n === 1) {
+        lutArray.fill(Math.min(1, Math.max(0, sorted[0].y)));
+        return;
+      }
+
+      const dx = new Array(n - 1);
+      const dy = new Array(n - 1);
+      const m = new Array(n - 1);
+      for (let i = 0; i < n - 1; i++) {
+        dx[i] = Math.max(1e-5, sorted[i + 1].x - sorted[i].x);
+        dy[i] = sorted[i + 1].y - sorted[i].y;
+        m[i] = dy[i] / dx[i];
+      }
+
+      const tangents = new Array(n);
+      tangents[0] = m[0];
+      tangents[n - 1] = m[n - 2];
+      for (let i = 1; i < n - 1; i++) {
+        if (m[i - 1] * m[i] <= 0) {
+          tangents[i] = 0;
+        } else {
+          tangents[i] = (m[i - 1] + m[i]) * 0.5;
+        }
+      }
+
+      for (let i = 0; i < len; i++) {
+        const x = i / (len - 1);
+        if (x <= sorted[0].x) {
+          lutArray[i] = sorted[0].y;
+          continue;
+        }
+        if (x >= sorted[n - 1].x) {
+          lutArray[i] = sorted[n - 1].y;
+          continue;
+        }
+
+        let seg = 0;
+        for (let j = 0; j < n - 1; j++) {
+          if (x >= sorted[j].x && x <= sorted[j + 1].x) {
+            seg = j;
+            break;
+          }
+        }
+
+        const h = dx[seg];
+        const t = (x - sorted[seg].x) / h;
+        const t2 = t * t;
+        const t3 = t2 * t;
+
+        const h00 = 2 * t3 - 3 * t2 + 1;
+        const h10 = t3 - 2 * t2 + t;
+        const h01 = -2 * t3 + 3 * t2;
+        const h11 = t3 - t2;
+
+        const y = h00 * sorted[seg].y + h10 * h * tangents[seg] + h01 * sorted[seg + 1].y + h11 * h * tangents[seg + 1];
+        lutArray[i] = Math.min(1, Math.max(0, y));
+      }
+    }
+
+    function updateAllLUTs() {
+      buildChannelLUT(curves.L, lutL);
+      buildChannelLUT(curves.R, lutR);
+      buildChannelLUT(curves.G, lutG);
+      buildChannelLUT(curves.B, lutB);
+    }
+
+    function boxBlurLuminance(srcLuma, width, height, radius) {
+      const tmp = new Float32Array(width * height);
+      const out = new Float32Array(width * height);
+      const r = Math.max(1, Math.round(radius));
+      const diameter = r * 2 + 1;
+
+      for (let y = 0; y < height; y++) {
+        let sum = 0;
+        const rowOffset = y * width;
+        for (let i = -r; i <= r; i++) {
+          const cx = Math.min(width - 1, Math.max(0, i));
+          sum += srcLuma[rowOffset + cx];
+        }
+        for (let x = 0; x < width; x++) {
+          tmp[rowOffset + x] = sum / diameter;
+          const removeX = Math.max(0, x - r);
+          const addX = Math.min(width - 1, x + r + 1);
+          sum += srcLuma[rowOffset + addX] - srcLuma[rowOffset + removeX];
+        }
+      }
+
+      for (let x = 0; x < width; x++) {
+        let sum = 0;
+        for (let i = -r; i <= r; i++) {
+          const cy = Math.min(height - 1, Math.max(0, i));
+          sum += tmp[cy * width + x];
+        }
+        for (let y = 0; y < height; y++) {
+          out[y * width + x] = sum / diameter;
+          const removeY = Math.max(0, y - r);
+          const addY = Math.min(height - 1, y + r + 1);
+          sum += tmp[addY * width + x] - tmp[removeY * width + x];
+        }
+      }
+      return out;
+    }
+
+    function isCurveModified(channelKey) {
+      const pts = curves[channelKey];
+      if (pts.length !== 2) return true;
+      return Math.abs(pts[0].x) > 0.01 || Math.abs(pts[0].y) > 0.01 ||
+             Math.abs(pts[1].x - 1) > 0.01 || Math.abs(pts[1].y - 1) > 0.01;
+    }
+
+    function getActiveEditSummary() {
+      const active = [];
+      const asinhVal = parseInt(document.getElementById('sliderAsinh').value, 10);
+      if (asinhVal > 0) active.push(`Pre-Stretch (${asinhVal}%)`);
+
+      const modChannels = ['L', 'R', 'G', 'B'].filter(isCurveModified);
+      if (modChannels.length > 0) {
+        active.push(`Curves (${modChannels.join(', ')})`);
+      }
+
+      const denoise = parseInt(document.getElementById('sliderDenoise').value, 10);
+      if (denoise > 0) active.push(`Denoise (${denoise}%)`);
+
+      const structure = parseInt(document.getElementById('sliderStructure').value, 10);
+      if (structure > 0) active.push(`Structure (+${structure}%)`);
+
+      const sharpen = parseInt(document.getElementById('sliderSharpen').value, 10);
+      if (sharpen > 0) active.push(`Sharpen (+${sharpen}%)`);
+
+      const sat = parseInt(document.getElementById('sliderSaturation').value, 10);
+      if (sat !== 0) active.push(`Saturation (${sat > 0 ? '+' : ''}${sat}%)`);
+
+      return active.length > 0 ? `Telescope Glasses: ${active.join(' • ')}` : 'Telescope Glasses: Unmodified Base';
+    }
+
+    function renderPipeline() {
+      const t0 = performance.now();
+      updateAllLUTs();
+
+      const asinhStrength = parseInt(document.getElementById('sliderAsinh').value, 10) / 100;
+      const denoiseStrength = parseInt(document.getElementById('sliderDenoise').value, 10) / 100;
+      const satStrength = parseInt(document.getElementById('sliderSaturation').value, 10) / 100;
+      const sharpenStrength = parseInt(document.getElementById('sliderSharpen').value, 10) / 100;
+      const structureStrength = parseInt(document.getElementById('sliderStructure').value, 10) / 100;
+      const showBorder = document.getElementById('toggleBorder').checked;
+
+      histR.fill(0);
+      histG.fill(0);
+      histB.fill(0);
+
+      const totalPixels = IMG_W * IMG_H;
+      const lumaBuffer = new Float32Array(totalPixels);
+
+      const beta = 1.0 + asinhStrength * 28.0;
+      const normAsinh = Math.asinh(beta);
+
+      for (let i = 0; i < totalPixels; i++) {
+        const idx = i * 3;
+        let r = rawFloatBuffer[idx];
+        let g = rawFloatBuffer[idx + 1];
+        let b = rawFloatBuffer[idx + 2];
+
+        if (!isComparingRaw) {
+          if (asinhStrength > 0) {
+            r = Math.asinh(r * beta) / normAsinh;
+            g = Math.asinh(g * beta) / normAsinh;
+            b = Math.asinh(b * beta) / normAsinh;
+          }
+
+          const rLutIdx = Math.min(1023, Math.max(0, Math.floor(r * 1023)));
+          const gLutIdx = Math.min(1023, Math.max(0, Math.floor(g * 1023)));
+          const bLutIdx = Math.min(1023, Math.max(0, Math.floor(b * 1023)));
+
+          r = lutR[rLutIdx];
+          g = lutG[gLutIdx];
+          b = lutB[bLutIdx];
+
+          r = lutL[Math.min(1023, Math.max(0, Math.floor(r * 1023)))];
+          g = lutL[Math.min(1023, Math.max(0, Math.floor(g * 1023)))];
+          b = lutL[Math.min(1023, Math.max(0, Math.floor(b * 1023)))];
+        }
+
+        postStretchBuffer[idx] = r;
+        postStretchBuffer[idx + 1] = g;
+        postStretchBuffer[idx + 2] = b;
+
+        const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+        lumaBuffer[i] = luma;
+
+        histR[Math.min(127, Math.floor(r * 127))]++;
+        histG[Math.min(127, Math.floor(g * 127))]++;
+        histB[Math.min(127, Math.floor(b * 127))]++;
+      }
+
+      let fineBlur = null;
+      let structureBlur = null;
+
+      if (!isComparingRaw && (sharpenStrength > 0 || denoiseStrength > 0)) {
+        fineBlur = boxBlurLuminance(lumaBuffer, IMG_W, IMG_H, 2);
+      }
+      if (!isComparingRaw && structureStrength > 0) {
+        structureBlur = boxBlurLuminance(lumaBuffer, IMG_W, IMG_H, 14);
+      }
+
+      const photoW = isRotated90 ? IMG_H : IMG_W;
+      const photoH = isRotated90 ? IMG_W : IMG_H;
+      const outHeight = showBorder ? photoH + BORDER_H : photoH;
+
+      if (previewCanvas.width !== photoW || previewCanvas.height !== outHeight) {
+        previewCanvas.width = photoW;
+        previewCanvas.height = outHeight;
+      }
+
+      const imgData = previewCtx.createImageData(photoW, photoH);
+      const data = imgData.data;
+
+      for (let y = 0; y < IMG_H; y++) {
+        for (let x = 0; x < IMG_W; x++) {
+          const i = y * IMG_W + x;
+          const idx = i * 3;
+          let r = postStretchBuffer[idx];
+          let g = postStretchBuffer[idx + 1];
+          let b = postStretchBuffer[idx + 2];
+          const baseLuma = lumaBuffer[i];
+
+          if (!isComparingRaw) {
+            let newLuma = baseLuma;
+
+            if (denoiseStrength > 0 && fineBlur) {
+              const diff = Math.abs(baseLuma - fineBlur[i]);
+              const edgeWeight = Math.exp(-diff * 26.0) * (1.0 - Math.min(1.0, baseLuma * 1.4));
+              const blend = denoiseStrength * 0.85 * edgeWeight;
+              newLuma = newLuma * (1 - blend) + fineBlur[i] * blend;
+            }
+
+            if (sharpenStrength > 0 && fineBlur) {
+              const highFreq = baseLuma - fineBlur[i];
+              newLuma += highFreq * (sharpenStrength * 1.8);
+            }
+
+            if (structureStrength > 0 && structureBlur) {
+              const midFreq = baseLuma - structureBlur[i];
+              newLuma += midFreq * (structureStrength * 1.35);
+            }
+
+            const lumaRatio = baseLuma > 1e-4 ? Math.max(0, newLuma) / baseLuma : 1.0;
+            r *= lumaRatio;
+            g *= lumaRatio;
+            b *= lumaRatio;
+
+            if (satStrength !== 0) {
+              const currentL = 0.299 * r + 0.587 * g + 0.114 * b;
+              const satFactor = 1.0 + satStrength;
+              r = currentL + (r - currentL) * satFactor;
+              g = currentL + (g - currentL) * satFactor;
+              b = currentL + (b - currentL) * satFactor;
+            }
+          }
+
+          const dstX = isRotated90 ? y : x;
+          const dstY = isRotated90 ? (IMG_W - 1 - x) : y;
+          const outIdx = (dstY * photoW + dstX) * 4;
+
+          data[outIdx] = Math.min(255, Math.max(0, Math.round(r * 255)));
+          data[outIdx + 1] = Math.min(255, Math.max(0, Math.round(g * 255)));
+          data[outIdx + 2] = Math.min(255, Math.max(0, Math.round(b * 255)));
+          data[outIdx + 3] = 255;
+        }
+      }
+
+      previewCtx.putImageData(imgData, 0, 0);
+
+      const editSummary = getActiveEditSummary();
+      document.getElementById('liveEditSummaryText').textContent = editSummary;
+
+      if (showBorder) {
+        drawSeestarFooter(previewCtx, photoW, photoH, BORDER_H, editSummary);
+      }
+
+      drawCurvesAndHistogram();
+
+      const elapsed = Math.round(performance.now() - t0);
+      document.getElementById('renderTimeBadge').textContent = `${elapsed} ms`;
+    }
+
+    function drawSeestarFooter(ctx, width, imgHeight, borderHeight, editSummary) {
+      const y0 = imgHeight;
+
+      ctx.fillStyle = '#080b11';
+      ctx.fillRect(0, y0, width, borderHeight);
+
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, y0 + 0.5);
+      ctx.lineTo(width, y0 + 0.5);
+      ctx.stroke();
+
+      const objName = document.getElementById('metaObject').value || 'Unknown Target';
+      const telescope = document.getElementById('metaTelescope').value || 'ZWO Seestar S50';
+      const exposure = document.getElementById('metaExposure').value || 'Stack N/A';
+      const filter = document.getElementById('metaFilter').value || 'IRCUT';
+      const coords = document.getElementById('metaCoords').value || '';
+      const dateStr = document.getElementById('metaDate').value || '';
+
+      const padX = 20;
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = '700 18px Inter, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(objName, padX, y0 + 32);
+
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = '600 13px "JetBrains Mono", monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(telescope, width - padX, y0 + 31);
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '500 12px "JetBrains Mono", monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(`${exposure}  •  ${filter}`, padX, y0 + 56);
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#64748b';
+      ctx.font = '400 11px "JetBrains Mono", monospace';
+      ctx.fillText(`${coords}  •  ${dateStr}`, width - padX, y0 + 56);
+
+      ctx.strokeStyle = '#162032';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padX, y0 + 73);
+      ctx.lineTo(width - padX, y0 + 73);
+      ctx.stroke();
+
+      ctx.fillStyle = '#0f172a';
+      const boxY = y0 + 83;
+      const boxH = 30;
+      ctx.beginPath();
+      ctx.roundRect(padX, boxY, width - padX * 2, boxH, 6);
+      ctx.fill();
+      ctx.strokeStyle = '#1e293b';
+      ctx.stroke();
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = '500 11px "JetBrains Mono", monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(editSummary, padX + 10, boxY + 19, width - padX * 2 - 20);
+    }
+
+    function drawCurvesAndHistogram() {
+      const w = curveCanvas.width;
+      const h = curveCanvas.height;
+      curveCtx.clearRect(0, 0, w, h);
+
+      curveCtx.strokeStyle = '#1e293b';
+      curveCtx.lineWidth = 1;
+      for (let i = 1; i <= 3; i++) {
+        const pos = (w / 4) * i;
+        curveCtx.beginPath();
+        curveCtx.moveTo(pos, 0);
+        curveCtx.lineTo(pos, h);
+        curveCtx.moveTo(0, pos);
+        curveCtx.lineTo(w, pos);
+        curveCtx.stroke();
+      }
+
+      curveCtx.strokeStyle = '#334155';
+      curveCtx.setLineDash([4, 4]);
+      curveCtx.beginPath();
+      curveCtx.moveTo(0, h);
+      curveCtx.lineTo(w, 0);
+      curveCtx.stroke();
+      curveCtx.setLineDash([]);
+
+      let maxBin = 1;
+      for (let i = 1; i < 127; i++) {
+        maxBin = Math.max(maxBin, histR[i], histG[i], histB[i]);
+      }
+      const logMax = Math.log1p(maxBin);
+
+      const drawHistChannel = (histArr, color) => {
+        curveCtx.fillStyle = color;
+        curveCtx.beginPath();
+        curveCtx.moveTo(0, h);
+        for (let i = 0; i < 128; i++) {
+          const x = (i / 127) * w;
+          const norm = Math.log1p(histArr[i]) / logMax;
+          const y = h - norm * (h * 0.75);
+          curveCtx.lineTo(x, y);
+        }
+        curveCtx.lineTo(w, h);
+        curveCtx.closePath();
+        curveCtx.fill();
+      };
+
+      drawHistChannel(histR, 'rgba(244, 63, 94, 0.18)');
+      drawHistChannel(histG, 'rgba(16, 185, 129, 0.18)');
+      drawHistChannel(histB, 'rgba(56, 189, 248, 0.18)');
+
+      const channelColors = {
+        L: '#f8fafc',
+        R: '#f43f5e',
+        G: '#10b981',
+        B: '#38bdf8'
+      };
+      const channelLUTs = { L: lutL, R: lutR, G: lutG, B: lutB };
+
+      ['R', 'G', 'B', 'L'].forEach(ch => {
+        if (ch === activeChannel) return;
+        const lut = channelLUTs[ch];
+        curveCtx.strokeStyle = channelColors[ch];
+        curveCtx.globalAlpha = 0.35;
+        curveCtx.lineWidth = 1.5;
+        curveCtx.beginPath();
+        for (let i = 0; i < w; i++) {
+          const lutIdx = Math.floor((i / (w - 1)) * 1023);
+          const y = h - lut[lutIdx] * h;
+          if (i === 0) curveCtx.moveTo(i, y);
+          else curveCtx.lineTo(i, y);
+        }
+        curveCtx.stroke();
+      });
+
+      curveCtx.globalAlpha = 1.0;
+      const activeLUT = channelLUTs[activeChannel];
+      curveCtx.strokeStyle = channelColors[activeChannel];
+      curveCtx.lineWidth = 2.5;
+      curveCtx.beginPath();
+      for (let i = 0; i < w; i++) {
+        const lutIdx = Math.floor((i / (w - 1)) * 1023);
+        const y = h - activeLUT[lutIdx] * h;
+        if (i === 0) curveCtx.moveTo(i, y);
+        else curveCtx.lineTo(i, y);
+      }
+      curveCtx.stroke();
+
+      const pts = curves[activeChannel];
+      pts.forEach((pt, idx) => {
+        const px = pt.x * w;
+        const py = (1 - pt.y) * h;
+        curveCtx.fillStyle = idx === draggingPointIndex ? '#f59e0b' : '#0f172a';
+        curveCtx.strokeStyle = channelColors[activeChannel];
+        curveCtx.lineWidth = 2.5;
+        curveCtx.beginPath();
+        curveCtx.arc(px, py, 6, 0, Math.PI * 2);
+        curveCtx.fill();
+        curveCtx.stroke();
+      });
+    }
+
+    function getCurveCoords(e) {
+      const rect = curveCanvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const x = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+      const y = Math.min(1, Math.max(0, 1 - (clientY - rect.top) / rect.height));
+      return { x, y };
+    }
+
+    function onCurvePointerDown(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const { x, y } = getCurveCoords(e);
+      const pts = curves[activeChannel];
+
+      const hitRadius = 0.06;
+      let foundIdx = -1;
+      for (let i = 0; i < pts.length; i++) {
+        const dist = Math.hypot(pts[i].x - x, pts[i].y - y);
+        if (dist < hitRadius) {
+          foundIdx = i;
+          break;
+        }
+      }
+
+      if (foundIdx !== -1) {
+        draggingPointIndex = foundIdx;
+      } else {
+        pts.push({ x, y });
+        pts.sort((a, b) => a.x - b.x);
+        draggingPointIndex = pts.findIndex(p => p.x === x && p.y === y);
+        renderPipeline();
+      }
+    }
+
+    function onCurvePointerMove(e) {
+      const { x, y } = getCurveCoords(e);
+      document.getElementById('curveCoordReadout').textContent =
+        `In: ${Math.round(x * 100)}% → Out: ${Math.round(y * 100)}%`;
+
+      if (draggingPointIndex === -1) return;
+      e.preventDefault();
+
+      const pts = curves[activeChannel];
+      if (draggingPointIndex === 0) {
+        pts[0].x = Math.min(pts[1].x - 0.02, Math.max(0, x));
+        pts[0].y = y;
+      } else if (draggingPointIndex === pts.length - 1) {
+        pts[pts.length - 1].x = Math.max(pts[pts.length - 2].x + 0.02, Math.min(1, x));
+        pts[pts.length - 1].y = y;
+      } else {
+        const minX = pts[draggingPointIndex - 1].x + 0.02;
+        const maxX = pts[draggingPointIndex + 1].x - 0.02;
+        pts[draggingPointIndex].x = Math.min(maxX, Math.max(minX, x));
+        pts[draggingPointIndex].y = y;
+      }
+      renderPipeline();
+    }
+
+    function onCurvePointerUp() {
+      draggingPointIndex = -1;
+      drawCurvesAndHistogram();
+    }
+
+    curveCanvas.addEventListener('mousedown', onCurvePointerDown);
+    window.addEventListener('mousemove', onCurvePointerMove);
+    window.addEventListener('mouseup', onCurvePointerUp);
+
+    curveCanvas.addEventListener('touchstart', onCurvePointerDown, { passive: false });
+    window.addEventListener('touchmove', onCurvePointerMove, { passive: false });
+    window.addEventListener('touchend', onCurvePointerUp);
+
+    curveCanvas.addEventListener('dblclick', (e) => {
+      const { x, y } = getCurveCoords(e);
+      const pts = curves[activeChannel];
+      for (let i = 1; i < pts.length - 1; i++) {
+        if (Math.hypot(pts[i].x - x, pts[i].y - y) < 0.07) {
+          pts.splice(i, 1);
+          renderPipeline();
+          break;
+        }
+      }
+    });
+
+    document.querySelectorAll('.curve-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeChannel = btn.getAttribute('data-channel');
+        document.querySelectorAll('.curve-tab').forEach(b => {
+          b.classList.remove('bg-slate-800', 'text-white', 'shadow');
+          b.classList.add('text-slate-400');
+        });
+        btn.classList.add('bg-slate-800', 'text-white', 'shadow');
+        btn.classList.remove('text-slate-400');
+        drawCurvesAndHistogram();
+      });
+    });
+
+    document.getElementById('btnResetCurve').addEventListener('click', () => {
+      curves[activeChannel] = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
+      renderPipeline();
+    });
+
+    document.getElementById('btnCurveDeepSky').addEventListener('click', () => {
+      curves.L = [{ x: 0.02, y: 0 }, { x: 0.18, y: 0.31 }, { x: 0.68, y: 0.83 }, { x: 1, y: 1 }];
+      renderPipeline();
+    });
+
+    document.getElementById('btnCurveCoreProtect').addEventListener('click', () => {
+      curves.L = [{ x: 0, y: 0 }, { x: 0.25, y: 0.38 }, { x: 0.65, y: 0.72 }, { x: 1, y: 0.92 }];
+      renderPipeline();
+    });
+
+    document.getElementById('btnCurveGreenNeutral').addEventListener('click', () => {
+      curves.G = [{ x: 0, y: 0 }, { x: 0.35, y: 0.29 }, { x: 1, y: 1 }];
+      renderPipeline();
+    });
+
+    document.getElementById('btnZeroSliders').addEventListener('click', () => {
+      document.getElementById('sliderDenoise').value = 0;
+      document.getElementById('valDenoise').textContent = '0%';
+      document.getElementById('sliderSaturation').value = 0;
+      document.getElementById('valSaturation').textContent = '0%';
+      document.getElementById('sliderSharpen').value = 0;
+      document.getElementById('valSharpen').textContent = '0%';
+      document.getElementById('sliderStructure').value = 0;
+      document.getElementById('valStructure').textContent = '0%';
+      renderPipeline();
+    });
+
+    document.getElementById('btnToggleFitsHeader').addEventListener('click', () => {
+      const drawer = document.getElementById('fitsHeaderDrawer');
+      drawer.classList.toggle('hidden');
+    });
+
+    document.getElementById('btnLoadSampleFits').addEventListener('click', () => {
+      generateSyntheticAstroImage(currentPreset);
+      const binaryFits = buildBinarySeestarFitsArrayBuffer(IMG_W, IMG_H, rawFloatBuffer, {
+        objectName: document.getElementById('metaObject').value,
+        telescope: 'ZWO Seestar S50',
+        stackCount: 420,
+        filter: 'LP'
+      });
+      parseBinaryFitsArrayBuffer(binaryFits, `sample_${currentPreset.toLowerCase()}_16bit.fit`);
+      document.getElementById('fitsHeaderDrawer').classList.remove('hidden');
+    });
+
+    document.getElementById('btnExportSampleFits').addEventListener('click', () => {
+      const binaryFits = buildBinarySeestarFitsArrayBuffer(IMG_W, IMG_H, rawFloatBuffer, {
+        objectName: document.getElementById('metaObject').value || 'M 42',
+        telescope: document.getElementById('metaTelescope').value || 'ZWO Seestar S50',
+        stackCount: 420,
+        filter: 'LP'
+      });
+      const blob = new Blob([binaryFits], { type: 'application/fits' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `seestar_${currentPreset.toLowerCase()}_sample.fit`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('btnCopyPresetJson').addEventListener('click', () => {
+      const presetJson = JSON.stringify({
+        isRotated90,
+        asinhPreStretch: parseInt(document.getElementById('sliderAsinh').value, 10) / 100,
+        curveL: curves.L,
+        curveR: curves.R,
+        curveG: curves.G,
+        curveB: curves.B,
+        noiseReduction: parseInt(document.getElementById('sliderDenoise').value, 10) / 100,
+        saturation: parseInt(document.getElementById('sliderSaturation').value, 10) / 100,
+        sharpeningSmall: parseInt(document.getElementById('sliderSharpen').value, 10) / 100,
+        structureLarge: parseInt(document.getElementById('sliderStructure').value, 10) / 100
+      }, null, 2);
+
+      const btn = document.getElementById('btnCopyPresetJson');
+      try {
+        navigator.clipboard.writeText(presetJson);
+      } catch (_) {
+        const ta = document.createElement('textarea');
+        ta.value = presetJson;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      btn.textContent = 'Copied JSON!';
+      setTimeout(() => { btn.textContent = 'Copy Android Preset JSON'; }, 1800);
+    });
+
+    const bindSlider = (id, valId, suffix = '%', signed = false) => {
+      const el = document.getElementById(id);
+      const valEl = document.getElementById(valId);
+      el.addEventListener('input', () => {
+        const v = parseInt(el.value, 10);
+        valEl.textContent = `${signed && v > 0 ? '+' : ''}${v}${suffix}`;
+        renderPipeline();
+      });
+    };
+
+    bindSlider('sliderAsinh', 'valAsinh');
+    bindSlider('sliderDenoise', 'valDenoise');
+    bindSlider('sliderSaturation', 'valSaturation', '%', true);
+    bindSlider('sliderSharpen', 'valSharpen');
+    bindSlider('sliderStructure', 'valStructure');
+
+    document.getElementById('toggleBorder').addEventListener('change', renderPipeline);
+
+    ['metaObject', 'metaTelescope', 'metaExposure', 'metaFilter', 'metaCoords', 'metaDate'].forEach(id => {
+      document.getElementById(id).addEventListener('input', renderPipeline);
+    });
+
+    const applyPreset = (key, obj, exp, filt, coords) => {
+      currentPreset = key;
+      document.getElementById('metaObject').value = obj;
+      document.getElementById('metaExposure').value = exp;
+      document.getElementById('metaFilter').value = filt;
+      document.getElementById('metaCoords').value = coords;
+      document.getElementById('sourceModeBadge').textContent = `16-Bit FITS Simulation (${obj} • BITPIX=16)`;
+
+      ['presetM42', 'presetM81', 'presetNGC7000'].forEach(id => {
+        const b = document.getElementById(id);
+        if (id === `preset${key}`) {
+          b.className = 'py-1.5 px-2 rounded-lg font-medium bg-slate-800 text-sky-400 border border-sky-500/30 transition';
+        } else {
+          b.className = 'py-1.5 px-2 rounded-lg font-medium bg-astro-900 text-slate-400 hover:text-white border border-slate-800 transition';
+        }
+      });
+
+      generateSyntheticAstroImage(key);
+      renderPipeline();
+    };
+
+    document.getElementById('presetM42').addEventListener('click', () =>
+      applyPreset('M42', 'M 42 Orion Nebula', '420 × 10s (70m 00s)', 'LP Dual-Band • Gain 80', "RA 05h 35m • DEC -05° 23'")
+    );
+    document.getElementById('presetM81').addEventListener('click', () =>
+      applyPreset('M81', "M 81 Bode's Galaxy", '1346 × 10s (224m 20s)', 'IRCUT • Gain 80', "RA 09h 55m • DEC +69° 03'")
+    );
+    document.getElementById('presetNGC7000').addEventListener('click', () =>
+      applyPreset('NGC7000', 'NGC 7000 Cygnus Wall', '680 × 10s (113m 20s)', 'LP Dual-Band • Gain 80', "RA 20h 58m • DEC +44° 20'")
+    );
+
+    document.getElementById('fileUpload').addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      const lower = file.name.toLowerCase();
+      if (lower.endsWith('.fit') || lower.endsWith('.fits')) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          parseBinaryFitsArrayBuffer(ev.target.result, file.name);
+          document.getElementById('fitsHeaderDrawer').classList.remove('hidden');
+        };
+        reader.readAsArrayBuffer(file);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          IMG_W = 540;
+          IMG_H = 680;
+          rawFloatBuffer = new Float32Array(IMG_W * IMG_H * 3);
+          postStretchBuffer = new Float32Array(IMG_W * IMG_H * 3);
+
+          const off = document.createElement('canvas');
+          off.width = IMG_W;
+          off.height = IMG_H;
+          const octx = off.getContext('2d');
+          octx.fillStyle = '#000';
+          octx.fillRect(0, 0, IMG_W, IMG_H);
+
+          const scale = Math.min(IMG_W / img.width, IMG_H / img.height);
+          const dw = img.width * scale;
+          const dh = img.height * scale;
+          octx.drawImage(img, (IMG_W - dw) / 2, (IMG_H - dh) / 2, dw, dh);
+
+          const pixels = octx.getImageData(0, 0, IMG_W, IMG_H).data;
+          for (let i = 0; i < IMG_W * IMG_H; i++) {
+            rawFloatBuffer[i * 3] = pixels[i * 4] / 255;
+            rawFloatBuffer[i * 3 + 1] = pixels[i * 4 + 1] / 255;
+            rawFloatBuffer[i * 3 + 2] = pixels[i * 4 + 2] / 255;
+          }
+
+          document.getElementById('sliderAsinh').value = 0;
+          document.getElementById('valAsinh').textContent = '0%';
+          document.getElementById('metaObject').value = file.name.replace(/\.[^/.]+$/, '');
+          document.getElementById('sourceModeBadge').textContent = `Custom Loaded Image (${file.name})`;
+          renderPipeline();
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    const btnCompare = document.getElementById('btnCompare');
+    const compareBadge = document.getElementById('compareBadge');
+    const startCompare = () => {
+      isComparingRaw = true;
+      compareBadge.classList.remove('hidden');
+      renderPipeline();
+    };
+    const endCompare = () => {
+      if (!isComparingRaw) return;
+      isComparingRaw = false;
+      compareBadge.classList.add('hidden');
+      renderPipeline();
+    };
+    btnCompare.addEventListener('mousedown', startCompare);
+    btnCompare.addEventListener('touchstart', (e) => { e.preventDefault(); startCompare(); });
+    window.addEventListener('mouseup', endCompare);
+    window.addEventListener('touchend', endCompare);
+
+    document.getElementById('btnResetAll').addEventListener('click', () => {
+      curves = {
+        L: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+        R: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+        G: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+        B: [{ x: 0, y: 0 }, { x: 1, y: 1 }]
+      };
+      document.getElementById('sliderAsinh').value = 0;
+      document.getElementById('valAsinh').textContent = '0%';
+      document.getElementById('sliderDenoise').value = 0;
+      document.getElementById('valDenoise').textContent = '0%';
+      document.getElementById('sliderSaturation').value = 0;
+      document.getElementById('valSaturation').textContent = '0%';
+      document.getElementById('sliderSharpen').value = 0;
+      document.getElementById('valSharpen').textContent = '0%';
+      document.getElementById('sliderStructure').value = 0;
+      document.getElementById('valStructure').textContent = '0%';
+      renderPipeline();
+    });
+
+    document.getElementById('btnDownload').addEventListener('click', () => {
+      const link = document.createElement('a');
+      const objSlug = (document.getElementById('metaObject').value || 'seestar_edit')
+        .toLowerCase().replace(/[^a-z0-9]+/g, '_');
+      link.download = `${objSlug}_telescope_glasses.png`;
+      link.href = previewCanvas.toDataURL('image/png');
+      link.click();
+    });
+
+    window.onload = () => {
+      generateSyntheticAstroImage('M42');
+      updateRotationLayout();
+    };
+  </script>
+</body>
+</html>
